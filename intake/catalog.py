@@ -33,6 +33,7 @@ def open_catalog(root, *, write: bool = False):
 
 def initialize_catalog(root) -> None:
     from audit.records import initialize_audit_records
+    from delivery.handoff import initialize_handoff_tables
     from delivery.ticket import initialize_tickets
     from intake.receipts import initialize_admission_receipts
     from reorder.catalog import initialize_order_catalog
@@ -56,6 +57,7 @@ def initialize_catalog(root) -> None:
         initialize_order_catalog(db)
         initialize_tickets(db)
         initialize_audit_records(db)
+        initialize_handoff_tables(db)
 
 
 def volume_is_accepted(db: sqlite3.Connection, volume_id: str) -> bool:

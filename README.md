@@ -12,6 +12,7 @@
 6. 正常页就位、备用页为空后提交生效顺序及成功回执。
 7. 晚班按旧票续领 B、C，另开票领 B、C、A。
 8. 班长 `close` 核对两张完整清单，各得整数合计 31，重开后凭核账号 `readback`。
+9. 双班票先 `enable_handoff` 固定白班、晚班，白班从原位 0 起连续 `confirm`；一次 `take_over` 划定交班边界后由晚班续认，齐备时 `close_joint` 签联合账，重开仍凭核账号 `readback`。
 
 样例 `samples/haizhan.json` 含三个原件和可区分的出处，载荷用十六进制转录，读数依次为 7、11、13 微应变。核账按每个应领身份一次求和，保留零读数，空卷合计 0，缺件报错。全程采用精确整数，磁盘上的读数与总量编码为十六进制整数文本。
 
@@ -26,7 +27,13 @@
 | `delivery.ticket.ticket(root, volume_id)` | 返回含 `number` 与 `original_ids` 的 `TicketOrder`，有序名单持久冻结。 |
 | `delivery.page.page(root, ticket_number, position, page_size)` | 首次使用位置 0。位置允许到名单长度，页长为正整数。返回 `PageResult(lines, next_position)`，`None` 表示结束。每行含身份、出处、读数和原字节。 |
 | `audit.close.close(root, ticket_number, lines)` | `lines` 为该票的全部有序交付行。返回 `AuditResult`，其中 `record` 保存 `number`、票号、卷号、原有序元数据和 `total`，`originals` 为原样交付行。 |
-| `audit.history.readback(root, audit_number)` | 返回封存的 `AuditResult`。明细及总量取自封存，按封存身份及校验依据取回原字节。 |
+| `audit.history.readback(root, audit_number)` | 返回封存的 `AuditResult`。明细及总量取自封存，按封存身份及校验依据取回原字节。联合账经同一核账号空间返回 `JointAuditResult`。 |
+| `delivery.ticket.enable_handoff(root, ticket_number, day_shift, evening_shift)` | 为已开的票固定两个不同班次，白班从原位 0 开始。同票同班次重投保留进度，异参拒绝。 |
+| `delivery.ticket.confirm(root, ticket_number, shift, request_id, position, lines, *, before_commit=None)` | 从首个未确认原位起连续提交非空 `DeliveryLine` 段，逐位核对身份、出处、读数与原字节摘要，返回 `ConfirmationReceipt`。同票同号同参重投返回原回执。 |
+| `delivery.ticket.take_over(root, ticket_number, request_id, *, before_commit=None)` | 一次白班到晚班的接手，返回 `TakeoverReceipt`，`next_position` 为生效时首个未确认原位（满票取名单长度）。 |
+| `audit.close.close_joint(root, ticket_number, *, before_commit=None)` | 已接手且每原位恰一份有效确认时签发联合账，逐位固定班次、确认回执与原件依据，精确整数求和；同票重签同号。 |
+
+双班启用、分段确认、接手裁决、联合签发的完整契约见 `HANDOFF.md`。
 
 卷号、请求号、原件号及出处使用非空白 UTF-8 文本。卷内原件身份唯一。接纳拒绝缺页、重复身份、读数非法或逐件字段不一致的输入。已接纳卷的重复提交在制备介质前拒绝。接纳中断遗留的未登记盘面不可领取，重新接纳须重新完整校验。接纳回执可通过 `intake.receipts.load_admission_receipt` 在目录事务中查阅。
 
@@ -39,6 +46,7 @@
 ```text
 python3 -B check_project.py
 python3 -B demo.py
+python3 -B handoff_cases.py
 ```
 
-演示使用独立临时卷。它在首次正常页改写生效后暂停并重开，展示旧票续页、重排发布、新票领取、整数核账和核账号重开复查。常规回归覆盖接纳拒绝、页写前失败、写成丢回包、目录提交回滚、分页读失败、空卷和大整数封存。
+演示使用独立临时卷。它在首次正常页改写生效后暂停并重开，展示旧票续页、重排发布、新票领取、整数核账和核账号重开复查；随后按 `HANDOFF.md` 实际执行两种确定的交班提交次序、回执重投与重开领取联合账。`handoff_cases.py` 另含独立的原 V1 对照。常规回归覆盖接纳拒绝、页写前失败、写成丢回包、目录提交回滚、分页读失败、空卷和大整数封存，以及双班启用、分段确认、接手竞争与联合签发。

@@ -112,6 +112,26 @@ def main():
     print('两张核账重开后各为 31 微应变。')
     print('POINTWISE_SCENARIO ' + json.dumps(result, ensure_ascii=False, sort_keys=True))
 
+    # Imported here because handoff_cases reuses demo.load_sample from this module.
+    from handoff_cases import run_confirm_first, run_handoff_first
+
+    with TemporaryDirectory(prefix='haizhan-demo-handoff-confirm-') as directory:
+        confirm_first = run_confirm_first(Path(directory))
+    with TemporaryDirectory(prefix='haizhan-demo-handoff-takeover-') as directory:
+        handoff_first = run_handoff_first(Path(directory))
+    print()
+    print('双班联合账（同一张冻结票，原位 0 起算、右端不含）：')
+    print('  交班次序一：白班 day-B 先提交成功（回包丢失后重投取原回执），接手位置 2；'
+          '原位归属 day-A、day-B、evening-C，合计 31。')
+    print('  交班次序二：handoff 接手先提交成功，白班再确认被拒，接手位置 1；'
+          '晚班一次确认 [1,3)，B、C 共用 evening-BC 回执，合计 31。')
+    print('  交接依据：领件按冻结票原序用分页 DeliveryLine 逐位核对身份、出处、整数读数与原字节摘要；'
+          '核账只认已接手票上每原位恰一份的有效确认，逐位固定班次与确认回执后精确求和，'
+          '重开按核账号经原介质取件语义读回。')
+    print('POINTWISE_HANDOFF ' + json.dumps(
+        {'confirm_first': confirm_first, 'handoff_first': handoff_first},
+        ensure_ascii=False, sort_keys=True))
+
 
 if __name__ == '__main__':
     main()

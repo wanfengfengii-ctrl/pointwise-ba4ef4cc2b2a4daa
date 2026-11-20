@@ -52,7 +52,9 @@ class VolumeCase(unittest.TestCase):
         return scan_pages(self.root, self.volume_id)
 
     def count(self, table):
-        allowed = {'admission_receipts', 'volumes', 'order_requests', 'tickets', 'audit_records', 'audit_lines'}
+        allowed = {'admission_receipts', 'volumes', 'order_requests', 'tickets', 'audit_records', 'audit_lines',
+                   'ticket_handoffs', 'ticket_operations', 'ticket_confirmation_lines', 'ticket_takeovers',
+                   'joint_audit_records', 'joint_audit_confirmations'}
         if table not in allowed:
             raise ValueError(f'unexpected table {table!r}')
         with open_catalog(self.root) as db:

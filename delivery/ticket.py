@@ -5,6 +5,16 @@ from dataclasses import dataclass
 from intake.catalog import open_catalog
 from reorder.catalog import load_active_order
 
+# Public handoff entries are specified under delivery.ticket in HANDOFF.md.
+from delivery.handoff import (  # noqa: F401
+    ConfirmationReceipt,
+    HandoffError,
+    TakeoverReceipt,
+    confirm,
+    enable_handoff,
+    take_over,
+)
+
 
 class UnknownTicket(LookupError):
     pass
